@@ -3,39 +3,37 @@ import functools
 
 @functools.total_ordering
 class Version:
+    _suffixes = {
+        "alpha": "1",
+        "beta": "2",
+        "b": ".2",
+        "rc": "3",
+        "-": ".",
+        "release": ".5"
+    }
+
     def __init__(self, version):
         self.version = version
 
-    def process_version(self):
+    @functools.cached_property
+    def as_tuple(self):
         new_version = self.version
-        new_dict = {
-            'alpha': "1",
-            "beta": "2",
-            "b": ".2",
-            "rc": "3",
-            "-": "."
-        }
-        for i in new_dict:
-            new_version = new_version.replace(i, new_dict[i])
+        flag = False
+
+        for i in self._suffixes:
+            if new_version.find(i) != -1:
+                flag = True
+                new_version = new_version.replace(i, self._suffixes[i])
+
+        if not flag:
+            new_version += self._suffixes.get("release")
         return tuple(int(i) for i in new_version.split("."))
 
     def __eq__(self, other):
-        return self.process_version() == other.process_version()
-
-    def __ne__(self, other):
-        return not self == other
+        return self.as_tuple is other.as_tuple
 
     def __lt__(self, other):
-        first = self.process_version()
-        second = other.process_version()
-        if first[0] == second[0] and first[1] == second[1] and first[2] == second[2]:
-            l1 = len(self.process_version())
-            l2 = len(other.process_version())
-            if l2 < l1:
-                return True
-            elif l2 > l1:
-                return False
-        return self.process_version() < other.process_version()
+        return self.as_tuple < other.as_tuple
 
 
 def main():
